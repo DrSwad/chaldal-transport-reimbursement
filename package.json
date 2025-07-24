@@ -1,9 +1,9 @@
 {
-  "name": "nodejs-typescript-template",
-  "version": "1.518.0",
-  "description": "A template for a nodejs application, using typescript",
+  "name": "chaldal-transport-reimbursement",
+  "version": "0.0.1",
+  "description": "Automate transport reimbursement process for Chaldal",
   "main": "dist/src/index.js",
-  "author": "",
+  "author": "Nayeemul Islam Swad",
   "license": "MIT",
   "scripts": {
     "dev": "nodemon --watch src/**/*.ts --exec ts-node ./src/app.ts",
@@ -16,7 +16,12 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "dotenv": "^17.2.0"
+    "@google-cloud/local-auth": "^3.0.1",
+    "cheerio": "^1.1.2",
+    "dotenv": "^17.2.0",
+    "google-auth-library": "^10.1.0",
+    "googleapis": "^154.0.0",
+    "node-html-to-image": "^5.0.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

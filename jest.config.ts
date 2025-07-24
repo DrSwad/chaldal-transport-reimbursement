@@ -1,9 +1,9 @@
-import type {Config} from '@jest/types';
+import type { Config } from 'jest';
 // Sync object
-const config: Config.InitialOptions = {
+const config: Config = {
   verbose: true,
   transform: {
-  '^.+\\.tsx?$': 'ts-jest',
+    '^.+\\.tsx?$': 'ts-jest',
   },
 };
 export default config;

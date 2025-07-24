@@ -4,8 +4,8 @@ node_modules
 dist
 # environmental variables
 .env
-# yarn error log
-yarn-error.log
+# pnpm
+.pnpm-debug.log
 # vscode config
 .vscode
 # test coverage
