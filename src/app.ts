@@ -1,6 +1,3 @@
-import * as dotenv from 'dotenv';
-dotenv.config();
-
 import { fetchInvoices } from '@/fetchInvoices';
 
 async function main() {

@@ -1,7 +1,6 @@
 import * as cheerio from 'cheerio';
 import { Invoice } from '@/types/Invoice';
 import { RideSharingService } from '@/types/RideSharingService';
-import { parse } from 'path';
 
 const parsePathaoInvoiceEmail = (
   emailId: string,
