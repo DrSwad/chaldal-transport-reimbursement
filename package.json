@@ -24,6 +24,7 @@
     "node-html-to-image": "^5.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.1.0",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
