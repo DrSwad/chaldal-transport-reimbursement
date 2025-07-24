@@ -2,7 +2,7 @@ import { google } from 'googleapis';
 import { authorize } from '@/gmail';
 import { OAuth2Client } from 'google-auth-library';
 import { parseInvoiceEmail } from '@/parseInvoiceEmail';
-import { saveEmail, loadEmail } from '@/storage';
+import { saveEmail, loadEmail, saveScreenshot } from '@/storage';
 
 async function fetchEmails(
   auth: OAuth2Client,
@@ -22,8 +22,7 @@ async function fetchEmails(
     maxResults: 100,
   });
 
-  let mails = res.data.messages || [];
-  mails = mails.slice(0, 1);
+  const mails = res.data.messages || [];
 
   const mailIdToHtmls: {
     [key: string]: string;
@@ -37,12 +36,9 @@ async function fetchEmails(
 
     const cachedHtml = await loadEmail(mail.id);
     if (cachedHtml) {
-      console.log(`Loaded cached HTML for mail ID: ${mail.id}`);
       mailIdToHtmls[mail.id] = cachedHtml;
       continue;
     }
-
-    console.log(`Fetching mail ID: ${mail.id}`);
 
     const res = await gmail.users.messages.get({
       userId: 'me',
@@ -61,6 +57,7 @@ async function fetchEmails(
       ).toString('utf-8');
       mailIdToHtmls[mail.id] = decodedHtmlPayload;
       await saveEmail(mail.id, decodedHtmlPayload);
+      await saveScreenshot(mail.id, decodedHtmlPayload);
     } else {
       console.warn('No HTML payload found in this message');
     }

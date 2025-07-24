@@ -1,9 +1,11 @@
 import fs from 'fs/promises';
 import process from 'process';
 import path from 'path';
+import nodeHtmlToImage from 'node-html-to-image';
 
 const STORAGE_PATH = path.join(process.cwd(), 'storage');
 const EMAILS_PATH = path.join(STORAGE_PATH, 'emails');
+const SCREENSHOTS_PATH = path.join(STORAGE_PATH, 'screenshots');
 
 export async function saveEmail(emailId: string, mailHtml: string) {
   await fs.mkdir(EMAILS_PATH, { recursive: true });
@@ -17,4 +19,12 @@ export async function loadEmail(emailId: string): Promise<string | null> {
   } catch (error) {
     return null;
   }
+}
+
+export async function saveScreenshot(emailId: string, mailHtml: string) {
+  await fs.mkdir(SCREENSHOTS_PATH, { recursive: true });
+  await nodeHtmlToImage({
+    output: path.join(SCREENSHOTS_PATH, `${emailId}.png`),
+    html: mailHtml,
+  });
 }
