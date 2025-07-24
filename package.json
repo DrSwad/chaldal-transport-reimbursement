@@ -5,10 +5,11 @@
   "main": "dist/src/index.js",
   "author": "Nayeemul Islam Swad",
   "license": "MIT",
+  "type": "module",
   "scripts": {
-    "dev": "nodemon --watch src/**/*.ts --exec ts-node ./src/app.ts",
-    "build": "tsc",
-    "start": "node ./dist/app.js",
+    "dev": "tsx watch --clear-screen=false src/app.ts",
+    "build": "node_modules/.bin/tsup",
+    "start": "node dist/app.js",
     "lint": "eslint --fix --quiet src/**/*.ts",
     "format": "prettier --loglevel silent --write src/**/*.ts",
     "test": "jest",
@@ -35,8 +36,22 @@
     "nodemon": "^3.1.10",
     "prettier": "^3.6.2",
     "ts-jest": "^29.4.0",
-    "ts-node": "^10.9.2",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "typescript-eslint-parser": "^22.0.0"
+  },
+  "tsup": {
+    "entry": [
+      "src",
+      "!src/**/*.spec.*"
+    ],
+    "splitting": false,
+    "sourcemap": true,
+    "clean": true,
+    "format": [
+      "esm"
+    ],
+    "dts": false
   }
 }

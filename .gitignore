@@ -1,14 +1,7 @@
-# node modules
 node_modules
-# build path
 dist
-# environmental variables
 .env
-# yarn error log
-yarn-error.log
-# vscode config
 .vscode
-# coverage
-coverage
-# storage
 storage
+credentials.json
+token.json
