@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 
-export const parseInvoiceMailHtml = (
+export const parseInvoiceEmail = (
   mailHtml: string,
 ): {
   date: string;

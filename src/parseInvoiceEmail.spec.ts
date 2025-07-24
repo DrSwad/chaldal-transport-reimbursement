@@ -1,4 +1,6 @@
-export const pathaoMailHtmlExample = `
+import { parseInvoiceEmail } from './parseInvoiceEmail';
+
+const pathaoInvoiceEmailExample = `
 <!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office"
   style="margin: 0;padding: 0;border: 0;vertical-align: baseline;">
@@ -400,3 +402,18 @@ export const pathaoMailHtmlExample = `
 
 </html>
 `;
+
+describe('parser', () => {
+  it('parser parses correctly', async () => {
+    const actual = parseInvoiceEmail(pathaoInvoiceEmailExample);
+    const expected = {
+      date: 'July 24, 2025',
+      fare: '159.99',
+      startTime: '09:24 AM',
+      startAddress: 'Bangla Motor Foot Over Bridge',
+      endTime: '09:59 AM',
+      endAddress: 'Chaldal Ltd, Block F, Banani',
+    };
+    expect(actual).toEqual(expected);
+  });
+});
