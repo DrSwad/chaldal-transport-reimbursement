@@ -6,4 +6,5 @@ export type Invoice = {
   startAddress: string;
   endTime: Date;
   endAddress: string;
+  submitted: boolean;
 };

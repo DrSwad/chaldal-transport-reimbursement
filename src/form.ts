@@ -1,6 +1,9 @@
 import { chromium } from 'playwright';
 import path from 'path';
 import process from 'process';
+import { Invoice } from '@/types/Invoice';
+import { getScreenshotPath, saveSubmission } from '@/storage';
+import fs from 'fs';
 
 const formUrl = 'https://forms.office.com/r/xWfwuqbg02';
 const STORAGE_PATH = path.join(process.cwd(), 'storage');
@@ -14,44 +17,46 @@ export async function authenticate() {
   const page = await browser.newPage();
   await page.goto(formUrl);
 
-  console.log('Waiting for form title to appear...');
-
-  await page.waitForSelector('#FormTitleId_titleAriaId', {
+  await page.getByText('Employee Transportation Reimbursement').waitFor({
     state: 'visible',
     timeout: 0,
   });
-
-  console.log('Form title is visible, saving context...');
 
   await page.context().storageState({ path: AUTH_CONTEXT_PATH });
 
   await browser.close();
 }
 
-export async function checkAuthentication() {
-  const browser = await chromium.launch({
-    headless: false,
-  });
-
-  const context = await browser.newContext({
-    storageState: AUTH_CONTEXT_PATH,
-  });
-
-  const page = await context.newPage();
-  await page.goto(formUrl);
-
-  const isAuthenticated = await page.isVisible('#FormTitleId_titleAriaId');
-
-  if (isAuthenticated) {
-    console.log('User is authenticated');
-  } else {
-    console.log('User is not authenticated');
+export async function isAuthenticated() {
+  if (!fs.existsSync(AUTH_CONTEXT_PATH)) {
+    return false;
   }
 
-  await browser.close();
+  const browser = await chromium.launch({
+    headless: true,
+  });
+
+  const context = await browser.newContext({
+    storageState: AUTH_CONTEXT_PATH,
+  });
+
+  const page = await context.newPage();
+  await page.goto(formUrl);
+
+  try {
+    await page.getByText('Employee Transportation Reimbursement').waitFor({
+      state: 'visible',
+      timeout: 10000,
+    });
+    return true;
+  } catch (error) {
+    return false;
+  } finally {
+    await browser.close();
+  }
 }
 
-export async function fillUpForm() {
+export async function fillUpForm(invoice: Invoice) {
   const browser = await chromium.launch({
     headless: false,
   });
@@ -63,15 +68,21 @@ export async function fillUpForm() {
   const page = await context.newPage();
   await page.goto(formUrl);
 
+  const invoiceDateFormatted = `${invoice.startTime.getMonth() + 1}/${invoice.startTime.getDate()}/${invoice.startTime.getFullYear()}`;
+  await page.getByRole('combobox', { name: 'Date' }).fill(invoiceDateFormatted);
   await page
-    .getByRole('combobox', { name: 'DateRequired to answer' })
-    .fill('27/07/2024');
+    .getByRole('textbox', { name: 'Total Cost' })
+    .fill(invoice.fare.toString());
   await page
-    .getByRole('textbox', { name: '2. Total Cost (in TK)Required' })
-    .fill('150');
-  await page.locator('input[type="file"]').setInputFiles('./example.png');
+    .locator('input[type="file"]')
+    .setInputFiles(`./${getScreenshotPath(invoice.emailId, true)}`);
 
-  await new Promise((resolve) => setTimeout(resolve, 300000));
+  await page.getByText('Your response was submitted.').waitFor({
+    state: 'visible',
+    timeout: 0,
+  });
+
+  await saveSubmission(invoice.emailId);
 
   await browser.close();
 }

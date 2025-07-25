@@ -1,11 +1,12 @@
 import * as cheerio from 'cheerio';
 import { Invoice } from '@/types/Invoice';
 import { RideSharingService } from '@/types/RideSharingService';
+import { isInvoiceSubmitted } from '@/storage';
 
-const parsePathaoInvoiceEmail = (
+const parsePathaoInvoiceEmail = async (
   emailId: string,
   mailHtml: string,
-): Invoice => {
+): Promise<Invoice> => {
   const $ = cheerio.load(mailHtml);
   const invoiceContainer = $('.details-area');
   const date = invoiceContainer.find('.service-date').text().trim();
@@ -51,10 +52,14 @@ const parsePathaoInvoiceEmail = (
     startAddress,
     endTime,
     endAddress,
+    submitted: await isInvoiceSubmitted(emailId),
   };
 };
 
-const parseUberInvoiceEmail = (emailId: string, mailHtml: string): Invoice => {
+const parseUberInvoiceEmail = async (
+  emailId: string,
+  mailHtml: string,
+): Promise<Invoice> => {
   const $ = cheerio.load(mailHtml);
 
   const date = $('.logo > table > tbody > tr > td > span:last-child')
@@ -106,22 +111,32 @@ const parseUberInvoiceEmail = (emailId: string, mailHtml: string): Invoice => {
     startAddress,
     endTime,
     endAddress,
+    submitted: await isInvoiceSubmitted(emailId),
   };
 };
 
-export const parseInvoiceEmail = (
+export const parseInvoiceEmail = async (
   emailId: string,
   mailHtml: string,
   rideSharingService: RideSharingService,
-): Invoice => {
+): Promise<Invoice> => {
   switch (rideSharingService) {
     case 'Pathao':
-      return parsePathaoInvoiceEmail(emailId, mailHtml);
+      return await parsePathaoInvoiceEmail(emailId, mailHtml);
     case 'Uber':
-      return parseUberInvoiceEmail(emailId, mailHtml);
+      return await parseUberInvoiceEmail(emailId, mailHtml);
     default:
       throw new Error(
         `Unsupported ride sharing service: ${rideSharingService}`,
       );
   }
+};
+
+export const detectRideSharingService = (
+  mailHtml: string,
+): RideSharingService => {
+  if (mailHtml.includes('pathao.com')) {
+    return 'Pathao';
+  }
+  return 'Uber';
 };

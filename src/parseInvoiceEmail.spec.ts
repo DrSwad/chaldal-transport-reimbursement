@@ -411,7 +411,7 @@ const uberInvoiceEmailExample = `
 
 describe('parser', () => {
   it('parser parses Pathao invoice email correctly', async () => {
-    const actual = parseInvoiceEmail(
+    const actual = await parseInvoiceEmail(
       'abc',
       pathaoInvoiceEmailExample,
       'Pathao',
@@ -424,12 +424,17 @@ describe('parser', () => {
       startAddress: 'Bangla Motor Foot Over Bridge',
       endTime: new Date('July 24, 2025 09:59 AM +0600'),
       endAddress: 'Chaldal Ltd, Block F, Banani',
+      submitted: false,
     };
     expect(actual).toEqual(expected);
   });
 
   it('parser parses Uber invoice email correctly', async () => {
-    const actual = parseInvoiceEmail('abc', uberInvoiceEmailExample, 'Uber');
+    const actual = await parseInvoiceEmail(
+      'abc',
+      uberInvoiceEmailExample,
+      'Uber',
+    );
     const expected: Invoice = {
       emailId: 'abc',
       rideSharingService: 'Uber',
@@ -438,6 +443,7 @@ describe('parser', () => {
       startAddress: '6 Road No. 01, Dhaka 1212, Bangladesh',
       endTime: new Date('29 June 2025 07:45 PM +0600'),
       endAddress: '1000 Link Rd, Dhaka 1205, Bangladesh',
+      submitted: false,
     };
     expect(actual).toEqual(expected);
   });

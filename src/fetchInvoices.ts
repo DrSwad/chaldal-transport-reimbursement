@@ -1,8 +1,41 @@
-import { google } from 'googleapis';
+import { gmail_v1, google } from 'googleapis';
 import { authorize } from '@/gmail';
 import { OAuth2Client } from 'google-auth-library';
-import { parseInvoiceEmail } from '@/parseInvoiceEmail';
+import {
+  parseInvoiceEmail,
+  detectRideSharingService,
+} from '@/parseInvoiceEmail';
 import { saveEmail, loadEmail, saveScreenshot } from '@/storage';
+
+async function fetchEmailById(gmail: gmail_v1.Gmail, emailId: string) {
+  const cachedHtml = await loadEmail(emailId);
+  if (cachedHtml) {
+    return cachedHtml;
+  }
+
+  const res = await gmail.users.messages.get({
+    userId: 'me',
+    id: emailId,
+    format: 'full',
+  });
+
+  const encodedHtmlPayload =
+    res?.data?.payload?.parts?.find((part) => part.mimeType === 'text/html')
+      ?.body?.data || res?.data?.payload?.body?.data;
+
+  if (encodedHtmlPayload) {
+    const decodedHtmlPayload = Buffer.from(
+      encodedHtmlPayload,
+      'base64',
+    ).toString('utf-8');
+    await saveEmail(emailId, decodedHtmlPayload);
+    await saveScreenshot(emailId, decodedHtmlPayload);
+    return decodedHtmlPayload;
+  } else {
+    console.warn('No HTML payload found in this message');
+    return null;
+  }
+}
 
 async function fetchEmails(
   auth: OAuth2Client,
@@ -34,32 +67,9 @@ async function fetchEmails(
       continue;
     }
 
-    const cachedHtml = await loadEmail(mail.id);
-    if (cachedHtml) {
-      mailIdToHtmls[mail.id] = cachedHtml;
-      continue;
-    }
-
-    const res = await gmail.users.messages.get({
-      userId: 'me',
-      id: mail.id,
-      format: 'full',
-    });
-
-    const encodedHtmlPayload =
-      res?.data?.payload?.parts?.find((part) => part.mimeType === 'text/html')
-        ?.body?.data || res?.data?.payload?.body?.data;
-
-    if (encodedHtmlPayload) {
-      const decodedHtmlPayload = Buffer.from(
-        encodedHtmlPayload,
-        'base64',
-      ).toString('utf-8');
-      mailIdToHtmls[mail.id] = decodedHtmlPayload;
-      await saveEmail(mail.id, decodedHtmlPayload);
-      await saveScreenshot(mail.id, decodedHtmlPayload);
-    } else {
-      console.warn('No HTML payload found in this message');
+    const emailHtml = await fetchEmailById(gmail, mail.id);
+    if (emailHtml) {
+      mailIdToHtmls[mail.id] = emailHtml;
     }
   }
 
@@ -87,12 +97,16 @@ export async function fetchInvoices(startDate: Date, endDate: Date) {
     'Thanks for riding',
   );
 
-  const pathaoInvoices = Object.entries(pathaoEmails).map(
-    ([emailId, mailHtml]) => parseInvoiceEmail(emailId, mailHtml, 'Pathao'),
+  const pathaoInvoices = await Promise.all(
+    Object.entries(pathaoEmails).map(([emailId, mailHtml]) =>
+      parseInvoiceEmail(emailId, mailHtml, 'Pathao'),
+    ),
   );
 
-  const uberInvoices = Object.entries(uberEmails).map(([emailId, mailHtml]) =>
-    parseInvoiceEmail(emailId, mailHtml, 'Uber'),
+  const uberInvoices = await Promise.all(
+    Object.entries(uberEmails).map(([emailId, mailHtml]) =>
+      parseInvoiceEmail(emailId, mailHtml, 'Uber'),
+    ),
   );
 
   const invoices = [...pathaoInvoices, ...uberInvoices].sort(
@@ -100,4 +114,20 @@ export async function fetchInvoices(startDate: Date, endDate: Date) {
   );
 
   return invoices;
+}
+
+export async function fetchInvoiceById(emailId: string) {
+  const auth = await authorize();
+  const gmail = google.gmail({ version: 'v1', auth });
+
+  const mailHtml = await fetchEmailById(gmail, emailId);
+  if (!mailHtml) {
+    throw new Error(`No email found with ID: ${emailId}`);
+  }
+
+  return await parseInvoiceEmail(
+    emailId,
+    mailHtml,
+    detectRideSharingService(mailHtml),
+  );
 }
