@@ -1,14 +1,24 @@
-import { fetchInvoices } from '@/fetchInvoices';
+import express from 'express';
+import path from 'path';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-async function main() {
-  const from = new Date('2025-06-25');
-  const to = new Date('2025-06-30');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-  try {
-    await fetchInvoices(from, to);
-  } catch (error) {
-    console.error('Error fetching invoices:', error);
-  }
-}
+const app = express();
+const PORT = 3000;
 
-main().catch(console.error);
+app.use(express.static('.'));
+
+app.get('/api/hello', (req, res) => {
+  res.json({ message: 'Hello from Express!' });
+});
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});

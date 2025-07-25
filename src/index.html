@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaldal Transport Reimbursement</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        function App() {
+            const [message, setMessage] = React.useState('');
+            const [loading, setLoading] = React.useState(false);
+
+            const fetchMessage = async () => {
+                setLoading(true);
+                try {
+                    const response = await fetch('/api/hello');
+                    const data = await response.json();
+                    setMessage(data.message);
+                } catch (error) {
+                    setMessage('Error fetching data');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="p-8 max-w-md mx-auto mt-16">
+                    <h1 className="text-3xl font-bold text-gray-800 mb-6">
+                        Express + React App
+                    </h1>
+                    <button 
+                        onClick={fetchMessage} 
+                        disabled={loading}
+                        className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                    >
+                        {loading ? 'Loading...' : 'Fetch Message from Server'}
+                    </button>
+                    {message && (
+                        <div className="mt-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+                            {message}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 onlyBuiltDependencies:
+  - '@playwright/browser-chromium'
   - esbuild
   - puppeteer
   - unrs-resolver
