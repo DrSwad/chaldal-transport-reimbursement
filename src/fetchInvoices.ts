@@ -5,7 +5,13 @@ import {
   parseInvoiceEmail,
   detectRideSharingService,
 } from '@/parseInvoiceEmail';
-import { saveEmail, loadEmail, saveScreenshot } from '@/storage';
+import {
+  saveEmail,
+  loadEmail,
+  saveScreenshot,
+  getScreenshotPath,
+} from '@/storage';
+import fs from 'fs';
 
 async function fetchEmailById(gmail: gmail_v1.Gmail, emailId: string) {
   const cachedHtml = await loadEmail(emailId);
@@ -29,7 +35,6 @@ async function fetchEmailById(gmail: gmail_v1.Gmail, emailId: string) {
       'base64',
     ).toString('utf-8');
     await saveEmail(emailId, decodedHtmlPayload);
-    await saveScreenshot(emailId, decodedHtmlPayload);
     return decodedHtmlPayload;
   } else {
     console.warn('No HTML payload found in this message');
@@ -130,4 +135,23 @@ export async function fetchInvoiceById(emailId: string) {
     mailHtml,
     detectRideSharingService(mailHtml),
   );
+}
+
+export async function saveInvoiceScreenshotAndGetPath(emailId: string) {
+  const screenshotPath = await getScreenshotPath(emailId);
+  if (fs.existsSync(screenshotPath)) {
+    return screenshotPath;
+  }
+
+  const auth = await authorize();
+  const gmail = google.gmail({ version: 'v1', auth });
+
+  const mailHtml = await fetchEmailById(gmail, emailId);
+  if (!mailHtml) {
+    throw new Error(`No email found with ID: ${emailId}`);
+  }
+
+  await saveScreenshot(emailId, mailHtml);
+
+  return screenshotPath;
 }

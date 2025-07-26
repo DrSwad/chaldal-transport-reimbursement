@@ -4,8 +4,12 @@ import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { loadSavedCredentialsIfExist, authorize } from '@/gmail';
 import { isAuthenticated, authenticate, fillUpForm } from '@/form';
-import { fetchInvoices, fetchInvoiceById } from '@/fetchInvoices';
-import { getScreenshotPath, saveSubmission, removeSubmission } from '@/storage';
+import {
+  fetchInvoices,
+  fetchInvoiceById,
+  saveInvoiceScreenshotAndGetPath,
+} from '@/fetchInvoices';
+import { saveSubmission, removeSubmission } from '@/storage';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -52,8 +56,10 @@ app.get('/api/invoices', async (req, res) => {
   return res.json({ data: await fetchInvoices(fromDate, toDate) });
 });
 
-app.get('/api/invoice-screenshot', (req, res) => {
-  return res.sendFile(getScreenshotPath(req.query.emailId as string));
+app.get('/api/invoice-screenshot', async (req, res) => {
+  return res.sendFile(
+    await saveInvoiceScreenshotAndGetPath(req.query.emailId as string),
+  );
 });
 
 app.post('/api/submit-invoice', async (req, res) => {
