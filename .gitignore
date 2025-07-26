@@ -5,3 +5,4 @@ dist
 storage
 credentials.json
 token.json
+.vscode-tailwind-intellisense.css

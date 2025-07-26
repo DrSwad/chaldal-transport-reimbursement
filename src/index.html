@@ -1,418 +1,397 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chaldal Transport Reimbursement</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chaldal Transport Reimbursement</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
-    <div id="root"></div>
+  <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+  <script type="text/babel">
+    const { useState, useEffect } = React;
 
-        function App() {
-            const [gmailAuth, setGmailAuth] = useState(false);
-            const [microsoftAuth, setMicrosoftAuth] = useState(false);
-            const [currentDate, setCurrentDate] = useState(new Date());
-            const [selectedDate, setSelectedDate] = useState(null);
-            const [invoices, setInvoices] = useState([]);
-            const [loading, setLoading] = useState(false);
-            const [monthlyTotal, setMonthlyTotal] = useState(0);
-            const [selectedInvoice, setSelectedInvoice] = useState(null);
+    function App() {
+      const [gmailAuth, setGmailAuth] = useState(false);
+      const [microsoftAuth, setMicrosoftAuth] = useState(false);
+      const [currentDate, setCurrentDate] = useState(new Date());
+      const [selectedDate, setSelectedDate] = useState(null);
+      const [invoices, setInvoices] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [monthlyTotal, setMonthlyTotal] = useState(0);
+      const [selectedInvoice, setSelectedInvoice] = useState(null);
 
-            // Check authentication status
-            useEffect(() => {
-                checkGmailAuth();
-                checkMicrosoftAuth();
-            }, []);
+      // Check authentication status
+      useEffect(() => {
+        checkGmailAuth();
+        checkMicrosoftAuth();
+      }, []);
 
-            // Load invoices when month changes
-            useEffect(() => {
-                if (gmailAuth) {
-                    loadMonthlyInvoices();
-                }
-            }, [currentDate, gmailAuth]);
-
-            const checkGmailAuth = async () => {
-                try {
-                    const response = await fetch('/api/is-authenticated-to-gmail');
-                    const result = await response.json();
-                    setGmailAuth(result.data);
-                } catch (error) {
-                    console.error('Error checking Gmail auth:', error);
-                }
-            };
-
-            const checkMicrosoftAuth = async () => {
-                try {
-                    const response = await fetch('/api/is-authenticated-to-microsoft-form');
-                    const result = await response.json();
-                    setMicrosoftAuth(result.data);
-                } catch (error) {
-                    console.error('Error checking Microsoft auth:', error);
-                }
-            };
-
-            const authenticateGmail = async () => {
-                setLoading(true);
-                try {
-                    const response = await fetch('/api/authenticate-to-gmail', { method: 'POST' });
-                    const result = await response.json();
-                    if (result.data) {
-                        setGmailAuth(true);
-                        loadMonthlyInvoices();
-                    }
-                } catch (error) {
-                    console.error('Error authenticating Gmail:', error);
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            const authenticateMicrosoft = async () => {
-                setLoading(true);
-                try {
-                    const response = await fetch('/api/authenticate-to-microsoft-form', { method: 'POST' });
-                    const result = await response.json();
-                    if (result.data) {
-                        setMicrosoftAuth(true);
-                    }
-                } catch (error) {
-                    console.error('Error authenticating Microsoft:', error);
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            const loadMonthlyInvoices = async () => {
-                const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-                const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-                
-                try {
-                    const response = await fetch(
-                        `/api/invoices?fromDate=${startOfMonth.toISOString()}&toDate=${endOfMonth.toISOString()}`
-                    );
-                    const result = await response.json();
-                    if (result.data) {
-                        setInvoices(result.data);
-                        const total = result.data
-                            .filter(invoice => invoice.submitted)
-                            .reduce((sum, invoice) => sum + invoice.fare, 0);
-                        setMonthlyTotal(total);
-                    }
-                } catch (error) {
-                    console.error('Error loading invoices:', error);
-                }
-            };
-
-            const submitInvoice = async (emailId) => {
-                setLoading(true);
-                try {
-                    const response = await fetch('/api/submit-invoice', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ emailId })
-                    });
-                    const result = await response.json();
-                    if (result.data) {
-                        loadMonthlyInvoices();
-                        setSelectedInvoice(null);
-                    }
-                } catch (error) {
-                    console.error('Error submitting invoice:', error);
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            const getDaysInMonth = () => {
-                const year = currentDate.getFullYear();
-                const month = currentDate.getMonth();
-                const firstDay = new Date(year, month, 1);
-                const lastDay = new Date(year, month + 1, 0);
-                const startDate = new Date(firstDay);
-                startDate.setDate(startDate.getDate() - firstDay.getDay());
-                
-                const days = [];
-                const current = new Date(startDate);
-                
-                for (let i = 0; i < 42; i++) {
-                    days.push(new Date(current));
-                    current.setDate(current.getDate() + 1);
-                }
-                
-                return days;
-            };
-
-            const getInvoicesForDate = (date) => {
-                return invoices.filter(invoice => {
-                    const invoiceDate = new Date(invoice.startTime);
-                    return invoiceDate.toDateString() === date.toDateString();
-                });
-            };
-
-            const isSubmissionDeadlineValid = (date) => {
-                const today = new Date();
-                const nextWednesday = new Date(date);
-                const daysUntilWednesday = (3 - date.getDay() + 7) % 7;
-                nextWednesday.setDate(date.getDate() + daysUntilWednesday + 7);
-                return today <= nextWednesday;
-            };
-
-            const formatDate = (date) => {
-                return date.toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                });
-            };
-
-            return (
-                <div className="max-w-6xl mx-auto p-6">
-                    {/* Header */}
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                            Chaldal Transport Reimbursement
-                        </h1>
-                        <p className="text-gray-600">
-                            Manage your transportation reimbursement submissions
-                        </p>
-                    </div>
-
-                    {/* Authentication Status */}
-                    <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                        <h2 className="text-xl font-semibold mb-4">Authentication Status</h2>
-                        <div className="flex flex-wrap gap-4">
-                            <div className="flex items-center gap-2">
-                                <div className={`w-3 h-3 rounded-full ${gmailAuth ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                                <span>Gmail</span>
-                                {!gmailAuth && (
-                                    <button 
-                                        onClick={authenticateGmail}
-                                        disabled={loading}
-                                        className="ml-2 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 disabled:bg-blue-300"
-                                    >
-                                        Authenticate
-                                    </button>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className={`w-3 h-3 rounded-full ${microsoftAuth ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                                <span>Microsoft Form</span>
-                                {!microsoftAuth && (
-                                    <button 
-                                        onClick={authenticateMicrosoft}
-                                        disabled={loading}
-                                        className="ml-2 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 disabled:bg-blue-300"
-                                    >
-                                        Authenticate
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {gmailAuth && (
-                        <>
-                            {/* Monthly Summary */}
-                            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-xl font-semibold">
-                                        {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                                    </h2>
-                                    <div className="flex gap-2">
-                                        <button 
-                                            onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
-                                            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
-                                        >
-                                            ← Prev
-                                        </button>
-                                        <button 
-                                            onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
-                                            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
-                                        >
-                                            Next →
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="text-2xl font-bold text-green-600">
-                                    ৳{monthlyTotal.toLocaleString()} / ৳8,000
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                    Total reimbursement applied this month
-                                </div>
-                            </div>
-
-                            {/* Calendar */}
-                            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                                <div className="grid grid-cols-7 gap-2 mb-4">
-                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                                        <div key={day} className="text-center font-semibold text-gray-600 py-2">
-                                            {day}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="grid grid-cols-7 gap-2">
-                                    {getDaysInMonth().map((date, index) => {
-                                        const dayInvoices = getInvoicesForDate(date);
-                                        const isCurrentMonth = date.getMonth() === currentDate.getMonth();
-                                        const submittedCount = dayInvoices.filter(inv => inv.submitted).length;
-                                        const pendingCount = dayInvoices.filter(inv => !inv.submitted).length;
-                                        const canSubmit = isSubmissionDeadlineValid(date);
-                                        
-                                        return (
-                                            <div
-                                                key={index}
-                                                onClick={() => isCurrentMonth && dayInvoices.length > 0 && setSelectedDate(date)}
-                                                className={`
-                                                    min-h-[80px] p-2 border rounded cursor-pointer transition-colors
-                                                    ${isCurrentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400'}
-                                                    ${dayInvoices.length > 0 && isCurrentMonth ? 'hover:bg-blue-50 border-blue-200' : 'border-gray-200'}
-                                                    ${selectedDate?.toDateString() === date.toDateString() ? 'bg-blue-100 border-blue-400' : ''}
-                                                `}
-                                            >
-                                                <div className="text-sm font-medium">{date.getDate()}</div>
-                                                {dayInvoices.length > 0 && isCurrentMonth && (
-                                                    <div className="mt-1">
-                                                        {submittedCount > 0 && (
-                                                            <div className="text-xs bg-green-100 text-green-800 px-1 rounded mb-1">
-                                                                {submittedCount} submitted
-                                                            </div>
-                                                        )}
-                                                        {pendingCount > 0 && (
-                                                            <div className={`text-xs px-1 rounded ${canSubmit ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                                                                {pendingCount} {canSubmit ? 'pending' : 'expired'}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Selected Date Details */}
-                            {selectedDate && (
-                                <div className="bg-white rounded-lg shadow-sm p-6">
-                                    <h3 className="text-lg font-semibold mb-4">
-                                        Rides for {formatDate(selectedDate)}
-                                    </h3>
-                                    <div className="space-y-4">
-                                        {getInvoicesForDate(selectedDate).map((invoice, index) => (
-                                            <div key={index} className="border rounded-lg p-4 hover:bg-gray-50">
-                                                <div className="flex justify-between items-start">
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <span className="font-medium">{invoice.rideSharingService}</span>
-                                                            <span className={`px-2 py-1 rounded text-xs ${
-                                                                invoice.submitted 
-                                                                    ? 'bg-green-100 text-green-800' 
-                                                                    : 'bg-yellow-100 text-yellow-800'
-                                                            }`}>
-                                                                {invoice.submitted ? 'Submitted' : 'Pending'}
-                                                            </span>
-                                                        </div>
-                                                        <div className="text-sm text-gray-600">
-                                                            <div>{invoice.startAddress} → {invoice.endAddress}</div>
-                                                            <div>৳{invoice.fare}</div>
-                                                            <div>
-                                                                {new Date(invoice.startTime).toLocaleTimeString()} - {new Date(invoice.endTime).toLocaleTimeString()}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => setSelectedInvoice(invoice)}
-                                                            className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
-                                                        >
-                                                            View
-                                                        </button>
-                                                        {!invoice.submitted && microsoftAuth && isSubmissionDeadlineValid(selectedDate) && (
-                                                            <button
-                                                                onClick={() => submitInvoice(invoice.emailId)}
-                                                                disabled={loading}
-                                                                className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 disabled:bg-green-300"
-                                                            >
-                                                                Submit
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Invoice Preview Modal */}
-                            {selectedInvoice && (
-                                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                                    <div className="bg-white rounded-lg max-w-2xl max-h-[90vh] overflow-auto">
-                                        <div className="p-6">
-                                            <div className="flex justify-between items-center mb-4">
-                                                <h3 className="text-lg font-semibold">Invoice Preview</h3>
-                                                <button
-                                                    onClick={() => setSelectedInvoice(null)}
-                                                    className="text-gray-500 hover:text-gray-700"
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
-                                            <div className="mb-4">
-                                                <div className="text-sm text-gray-600 space-y-1">
-                                                    <div><strong>Service:</strong> {selectedInvoice.rideSharingService}</div>
-                                                    <div><strong>Fare:</strong> ৳{selectedInvoice.fare}</div>
-                                                    <div><strong>Route:</strong> {selectedInvoice.startAddress} → {selectedInvoice.endAddress}</div>
-                                                    <div><strong>Time:</strong> {new Date(selectedInvoice.startTime).toLocaleString()}</div>
-                                                </div>
-                                            </div>
-                                            <img 
-                                                src={`/api/invoice-screenshot?emailId=${selectedInvoice.emailId}`}
-                                                alt="Invoice Screenshot"
-                                                className="w-full border rounded"
-                                                onError={(e) => e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NzM4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+PC9zdmc+'}
-                                            />
-                                            {!selectedInvoice.submitted && microsoftAuth && (
-                                                <div className="mt-4">
-                                                    <button
-                                                        onClick={() => submitInvoice(selectedInvoice.emailId)}
-                                                        disabled={loading}
-                                                        className="w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-green-300"
-                                                    >
-                                                        {loading ? 'Submitting...' : 'Submit Invoice'}
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </>
-                    )}
-
-                    {!gmailAuth && (
-                        <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-                            <div className="text-gray-500 mb-4">
-                                <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                </svg>
-                                <h3 className="text-lg font-medium">Gmail Authentication Required</h3>
-                                <p className="text-sm mt-2">Please authenticate with Gmail to view your invoices</p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
+      // Load invoices when month changes
+      useEffect(() => {
+        if (gmailAuth) {
+          loadMonthlyInvoices();
         }
+      }, [currentDate, gmailAuth]);
 
-        ReactDOM.render(<App />, document.getElementById('root'));
-    </script>
+      const checkGmailAuth = async () => {
+        try {
+          const response = await fetch('/api/is-authenticated-to-gmail');
+          const result = await response.json();
+          setGmailAuth(result.data);
+        } catch (error) {
+          console.error('Error checking Gmail auth:', error);
+        }
+      };
+
+      const checkMicrosoftAuth = async () => {
+        try {
+          const response = await fetch('/api/is-authenticated-to-microsoft-form');
+          const result = await response.json();
+          setMicrosoftAuth(result.data);
+        } catch (error) {
+          console.error('Error checking Microsoft auth:', error);
+        }
+      };
+
+      const authenticateGmail = async () => {
+        setLoading(true);
+        try {
+          const response = await fetch('/api/authenticate-to-gmail', { method: 'POST' });
+          const result = await response.json();
+          if (result.data) {
+            setGmailAuth(true);
+            loadMonthlyInvoices();
+          }
+        } catch (error) {
+          console.error('Error authenticating Gmail:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const authenticateMicrosoft = async () => {
+        setLoading(true);
+        try {
+          const response = await fetch('/api/authenticate-to-microsoft-form', { method: 'POST' });
+          const result = await response.json();
+          if (result.data) {
+            setMicrosoftAuth(true);
+          }
+        } catch (error) {
+          console.error('Error authenticating Microsoft:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const loadMonthlyInvoices = async () => {
+        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        
+        try {
+          const response = await fetch(
+            `/api/invoices?fromDate=${startOfMonth.toISOString()}&toDate=${endOfMonth.toISOString()}`
+          );
+          const result = await response.json();
+          if (result.data) {
+            setInvoices(result.data);
+            const total = result.data
+              .filter(invoice => invoice.submitted)
+              .reduce((sum, invoice) => sum + invoice.fare, 0);
+            setMonthlyTotal(total);
+          }
+        } catch (error) {
+          console.error('Error loading invoices:', error);
+        }
+      };
+
+      const submitInvoice = async (emailId) => {
+        setLoading(true);
+        try {
+          const response = await fetch('/api/submit-invoice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ emailId })
+          });
+          const result = await response.json();
+          if (result.data) {
+            loadMonthlyInvoices();
+            setSelectedInvoice(null);
+          }
+        } catch (error) {
+          console.error('Error submitting invoice:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const getDaysInMonth = () => {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const startDate = new Date(firstDay);
+        startDate.setDate(startDate.getDate() - firstDay.getDay());
+        
+        const days = [];
+        const current = new Date(startDate);
+        
+        for (let i = 0; i % 7 != 0 || current <= lastDay; i++) {
+          days.push(new Date(current));
+          current.setDate(current.getDate() + 1);
+        }
+        
+        return days;
+      };
+
+      const getInvoicesForDate = (date) => {
+        return invoices.filter(invoice => {
+          const invoiceDate = new Date(invoice.startTime);
+          return invoiceDate.toDateString() === date.toDateString();
+        });
+      };
+
+      const isSubmissionDeadlineValid = (date) => {
+        const today = new Date();
+        const nextWednesday = new Date(date);
+        const daysUntilWednesday = (3 - date.getDay() + 7) % 7;
+        nextWednesday.setDate(date.getDate() + daysUntilWednesday + 7);
+        return today <= nextWednesday;
+      };
+
+      const formatDate = (date) => {
+        return date.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+      };
+
+      const mailBoxIcon = (
+        <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      );
+
+      const pathaoIcon = (
+        <svg className="w-5 h-5" width="29" height="29" viewBox="0 0 29 29" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M28.2611 14.1305C28.2611 21.9346 21.9346 28.2611 14.1305 28.2611C6.32645 28.2611 0 21.9346 0 14.1305C0 6.32645 6.32645 0 14.1305 0C21.9346 0 28.2611 6.32645 28.2611 14.1305Z" fill="white"/>
+          <path d="M14.1303 0C9.76077 0 5.85501 1.98452 3.26325 5.09995C3.73474 7.44292 4.40768 9.5342 5.26709 11.3211C4.97821 12.0738 4.76468 12.8419 4.65357 13.5641L3.97629 17.2419C2.67678 15.6631 1.40868 13.5762 0.392266 10.8265C0.138163 11.8873 0 12.9926 0 14.1303C0 17.6897 1.31883 20.9389 3.49078 23.4239L5.2869 13.6718C5.37531 13.0984 5.53231 12.4955 5.74052 11.897C5.76806 11.8173 5.79511 11.738 5.82506 11.6574C5.86322 11.555 5.90429 11.4525 5.94535 11.3506C5.97337 11.281 6.00187 11.2115 6.03182 11.1414C6.07626 11.0371 6.12264 10.9337 6.16998 10.8313C6.20428 10.7569 6.24003 10.683 6.27626 10.6086C6.32312 10.5125 6.37046 10.4163 6.41974 10.3221C6.4724 10.2212 6.52892 10.1207 6.58592 10.0197C6.62457 9.9511 6.66128 9.88106 6.70138 9.81391C8.04581 7.54485 10.4033 5.45308 14.1796 5.45308C14.1849 5.45308 14.1892 5.45308 14.1941 5.45308C17.7322 5.45791 20.836 7.58929 22.1022 10.881C23.3925 14.2361 22.4824 17.8699 19.7264 20.365C17.153 22.694 13.0888 23.1331 9.37333 21.4838C9.22454 21.4177 9.06464 21.3423 8.89942 21.2597L9.72164 16.7969C10.1675 17.095 10.6303 17.3544 11.1115 17.5679C13.2805 18.5312 15.5346 18.381 16.852 17.1887C18.2858 15.8907 18.7539 14.1071 18.1046 12.4187C17.6071 11.124 16.3163 9.73951 14.1887 9.73661C14.1863 9.73661 14.1834 9.73661 14.181 9.73661C10.367 9.73661 9.59314 13.8829 9.51729 14.3564L9.50666 14.4182L7.28301 26.4905C9.31198 27.6171 11.6463 28.2611 14.1317 28.2611C21.936 28.2611 28.262 21.9346 28.262 14.1308C28.2611 6.3265 21.9346 0 14.1303 0Z" fill="#E83330"/>
+        </svg>
+      );
+
+      const uberIcon = (
+        <svg className="w-5 h-5" id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><circle fillRule="evenodd" cx="48" cy="48" r="48"/><path fill="#fff" d="M18.8,52.91A5.61,5.61,0,0,0,20,54.81,5,5,0,0,0,21.71,56a5.71,5.71,0,0,0,2.2.42,5.34,5.34,0,0,0,3.95-1.66A5.54,5.54,0,0,0,29,52.89a6.75,6.75,0,0,0,.42-2.44V36.54h3.38V59.07H29.48V57a7.77,7.77,0,0,1-2.65,1.83,8.41,8.41,0,0,1-3.3.65,8.89,8.89,0,0,1-3.36-.63A8,8,0,0,1,17.46,57a8.44,8.44,0,0,1-1.8-2.78A9.53,9.53,0,0,1,15,50.64V36.54h3.38V50.45a6.9,6.9,0,0,0,.42,2.46ZM77,46.68a4.34,4.34,0,0,0-1,3.06v9.33H72.73V42.66H76v2a4.54,4.54,0,0,1,1.59-1.58,4.45,4.45,0,0,1,2.33-.58H81v3H79.65A3.42,3.42,0,0,0,77,46.68Zm-22.08.9a8.87,8.87,0,0,1,1.77-2.72A8.29,8.29,0,0,1,59.38,43,8.69,8.69,0,0,1,66,43a7.69,7.69,0,0,1,2.61,1.79,8.18,8.18,0,0,1,1.71,2.7,9.37,9.37,0,0,1,.61,3.39v1.07H57.57a5.44,5.44,0,0,0,.65,1.85,5.74,5.74,0,0,0,1.2,1.48,5.9,5.9,0,0,0,1.64,1,5.52,5.52,0,0,0,1.95.35,5.62,5.62,0,0,0,4.73-2.41l2.35,1.74A8.55,8.55,0,0,1,63,59.42a9.1,9.1,0,0,1-3.43-.64A8.38,8.38,0,0,1,55,54.26a8.46,8.46,0,0,1-.68-3.4,8.63,8.63,0,0,1,.64-3.28Zm4.53-1.27a5.45,5.45,0,0,0-1.82,3h10a5.29,5.29,0,0,0-1.78-3,5.06,5.06,0,0,0-6.4,0ZM38.65,36.54v8.21A8.6,8.6,0,0,1,41.26,43a7.83,7.83,0,0,1,3.22-.66,8.65,8.65,0,0,1,6.11,2.51,8.77,8.77,0,0,1,1.83,2.74,8.26,8.26,0,0,1,.68,3.35,8.13,8.13,0,0,1-.68,3.33A8.8,8.8,0,0,1,50.59,57a8.65,8.65,0,0,1-6.11,2.51,8,8,0,0,1-3.24-.66A8.65,8.65,0,0,1,38.62,57v2.06H35.4V36.54ZM39,53.12a5.65,5.65,0,0,0,1.21,1.8A5.79,5.79,0,0,0,42,56.14a5.51,5.51,0,0,0,2.22.45,5.43,5.43,0,0,0,2.19-.45,5.74,5.74,0,0,0,1.79-1.22,6.16,6.16,0,0,0,1.2-1.8,5.51,5.51,0,0,0,.45-2.22,5.6,5.6,0,0,0-.45-2.24,6,6,0,0,0-1.2-1.82,5.55,5.55,0,0,0-1.79-1.21,5.64,5.64,0,0,0-6.18,1.21A5.88,5.88,0,0,0,39,48.66a5.6,5.6,0,0,0-.45,2.24A5.67,5.67,0,0,0,39,53.12Z"/></svg>
+      );
+
+      return (
+        <div className="max-w-7xl mx-auto px-6 pt-12 pb-6">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">
+              Chaldal Employee Transportation Reimbursement
+            </h1>
+            <p className="text-slate-500">
+              Manage your transportation reimbursement submissions
+            </p>
+          </div>
+
+          {gmailAuth && (
+            <>
+              <div className="relative">
+                {/* Calendar */}
+                <div className="bg-white rounded-lg shadow-sm p-6 w-2/3">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold text-slate-500">
+                      {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </h2>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+                        className="px-3 py-1 rounded text text-slate-400 hover:bg-gray-100"
+                      >
+                        ← Prev
+                      </button>
+                      <button 
+                        onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+                        className="px-3 py-1 rounded text-slate-400 hover:bg-gray-100"
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-7 gap-2 mb-2">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                      <div key={day} className="text-center text-sm text-slate-400 py-2">
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-2">
+                    {getDaysInMonth().map((date, index) => {
+                      const dayInvoices = getInvoicesForDate(date);
+                      const isCurrentMonth = date.getMonth() === currentDate.getMonth();
+                      const isWeekend = date.getDay() > 4;
+                      const isHovered = dayInvoices.length > 0 && isCurrentMonth;
+                      const isSelected = selectedDate?.toDateString() === date.toDateString();
+                      const submittedCount = dayInvoices.filter(inv => inv.submitted).length;
+                      const pendingCount = dayInvoices.filter(inv => !inv.submitted).length;
+                      const canSubmit = isSubmissionDeadlineValid(date);
+                      
+                      return (
+                        <div
+                          key={index}
+                          onClick={() => isCurrentMonth && dayInvoices.length > 0 && setSelectedDate(date)}
+                          className={`
+                            h-24 w-24 p-2 border shadow-sm rounded cursor-pointer transition-colors
+                            ${isCurrentMonth && !isWeekend ? 'bg-white text-slate-600' : 'bg-gray-50 text-gray-400'}
+                            ${isHovered ? 'hover:bg-gray-100 border-gray-200' : 'border-gray-200'}
+                            ${isSelected ? 'bg-gray-100 border-gray-300 border-2' : ''}
+                          `}
+                        >
+                          <div className="text-sm font-medium">{date.getDate()}</div>
+                          {dayInvoices.length > 0 && isCurrentMonth && (
+                            <div className="mt-2">
+                              {submittedCount > 0 && (
+                                <div className="text-xs bg-green-100 border border-green-300 text-green-800 pl-1 py-0.5 rounded mb-1">
+                                  {submittedCount} submitted
+                                </div>
+                              )}
+                              {pendingCount > 0 && (
+                                <div className={`text-xs pl-1.5 py-0.5 rounded ${canSubmit ? 'bg-yellow-100 border border-yellow-300 text-yellow-800' : 'bg-red-100 border border-red-300 text-red-800'}`}>
+                                  {pendingCount} {canSubmit ? 'pending' : 'expired'}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Monthly Summary */}
+                  <div className="mt-4 align-baseline">
+                    <span className="text-2xl font-bold text-green-600">৳{monthlyTotal.toLocaleString()}</span>
+                    <span className="text-sm ml-1 text-slate-500">/ ৳8,000</span>
+                  </div>
+                  <div className="text-sm text-slate-400">
+                    Total reimbursement applied this month
+                  </div>
+                </div>
+
+                {/* Selected Date Details */}
+                {selectedDate && (
+                  <div className="flex flex-col items-stretch bg-white rounded-lg shadow-sm p-6 w-1/3 absolute top-0 bottom-0 -right-2 overflow-hidden">
+                    <h3 className="text-lg font-semibold mb-4">
+                      <span className="text-slate-500">Rides for</span> <span className="text-slate-600">{formatDate(selectedDate)}</span>
+                    </h3>
+                    <div className="flex-1 space-y-4 overflow-y-auto">
+                      {getInvoicesForDate(selectedDate).map((invoice, index) => (
+                        <div key={index} className="hover:bg-gray-50 hover:cursor-pointer bg-white rounded-xl shadow-sm border border-gray-200 p-4" onClick={() => setSelectedInvoice(invoice)}>
+                          <div className="flex items-center gap-2 mb-4">
+                            {invoice.rideSharingService === 'Pathao' && pathaoIcon}
+                            {invoice.rideSharingService === 'Uber' && uberIcon}
+                            <span class="font-medium text-gray-900 flex-1">{new Date(invoice.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {new Date(invoice.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              invoice.submitted 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {invoice.submitted ? 'Submitted' : 'Pending'}
+                            </span>
+                          </div>
+
+                          <div class="flex items-start justify-between">
+                              <div class="flex-1 mr-4 overflow-hidden">
+                                  <div class="flex items-center">
+                                      <div class="w-3 h-3 rounded-full border border-gray-400 mr-3 flex-shrink-0"></div>
+                                      <span class="text-sm text-gray-700 truncate flex-1 min-w-0">{invoice.startAddress}{invoice.startAddress}</span>
+                                  </div>
+                                  <div class="flex items-center">
+                                      <div class="w-3 flex justify-center mr-3">
+                                          <div class="w-0.5 h-3 border-l-2 border-dotted border-gray-300"></div>
+                                      </div>
+                                  </div>
+                                  <div class="flex items-center">
+                                      <div class="w-3 h-3 rounded-full border border-gray-400 mr-3 flex-shrink-0"></div>
+                                      <div class="text-sm text-gray-700 truncate">{invoice.endAddress}</div>
+                                  </div>
+                              </div>
+                              <div class="text-right flex-shrink-0">
+                                  <div class="text-2xl font-bold text-gray-900">৳{invoice.fare}</div>
+                              </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Invoice Preview Modal */}
+              {selectedInvoice && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                  <div className="bg-white rounded-lg max-w-2xl max-h-[90vh] overflow-hidden p-6 flex flex-col">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Invoice Preview</h3>
+                      <button
+                        onClick={() => setSelectedInvoice(null)}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="flex-1 overflow-auto">
+                      <img 
+                        src={`/api/invoice-screenshot?emailId=${selectedInvoice.emailId}`}
+                        alt="Invoice Screenshot"
+                        className="w-full border rounded"
+                        onError={(e) => e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NzM4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+PC9zdmc+'}
+                      />
+                    </div>
+                    {!selectedInvoice.submitted && microsoftAuth && (
+                      <div className="mt-4">
+                        <button
+                          onClick={() => submitInvoice(selectedInvoice.emailId)}
+                          disabled={loading}
+                          className="w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-green-300"
+                        >
+                          {loading ? 'Submitting...' : 'Submit Invoice'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {!gmailAuth && (
+            <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+              <div className="text-gray-500 mb-4">
+                {mailBoxIcon}
+                <h3 className="text-lg font-medium">Gmail Authentication Required</h3>
+                <p className="text-sm my-2">Please authenticate with Gmail to view your invoices</p>
+                <button 
+                  onClick={authenticateGmail}
+                  disabled={loading}
+                  className="mt-6 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 disabled:bg-blue-300"
+                >
+                  Authenticate
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
 </body>
 </html>
