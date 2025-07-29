@@ -212,7 +212,12 @@
         const today = new Date();
         const nextWednesday = new Date(date);
         const daysUntilWednesday = (3 - date.getDay() + 7) % 7;
-        nextWednesday.setDate(date.getDate() + daysUntilWednesday + 7);
+        if (date.getDay() !== 4 && date.getDay() !== 5) { // not Thursday or Friday
+          nextWednesday.setDate(date.getDate() + daysUntilWednesday + 7);
+        }
+        else {
+          nextWednesday.setDate(date.getDate() + daysUntilWednesday);
+        }
         return today <= nextWednesday;
       };
 
