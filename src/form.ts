@@ -71,11 +71,17 @@ export async function fillUpForm(invoice: Invoice) {
   const page = await context.newPage();
   await page.goto(formUrl);
 
-  const invoiceDateFormatted = `${invoice.startTime.getMonth() + 1}/${invoice.startTime.getDate()}/${invoice.startTime.getFullYear()}`;
-  await page.getByRole('combobox', { name: 'Date' }).fill(invoiceDateFormatted);
+  const dateInputElement = await page.getByRole('combobox', { name: 'Date' });
+  const dateInputFormat = await dateInputElement.getAttribute('placeholder');
+  const invoiceDateFormatted = dateInputFormat?.toLowerCase()?.includes('dd/mm')
+    ? `${invoice.startTime.getDate()}/${invoice.startTime.getMonth() + 1}/${invoice.startTime.getFullYear()}`
+    : `${invoice.startTime.getMonth() + 1}/${invoice.startTime.getDate()}/${invoice.startTime.getFullYear()}`;
+  await dateInputElement.fill(invoiceDateFormatted);
+
   await page
     .getByRole('textbox', { name: 'Total Cost' })
     .fill(invoice.fare.toString());
+
   await page
     .locator('input[type="file"]')
     .setInputFiles(`./${getScreenshotPath(invoice.emailId, true)}`);
