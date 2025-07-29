@@ -7,6 +7,6 @@
 
 ## Build & Run
 
-1. Copy the contents of the `.env.example` file to a `.env` next to it, and edit it with your values.
-2. Run `yarn build` or `npm build` to build the files.
-3. Run `yarn start` or `npm start` to start the application.
+1. Copy the contents of the `.env.example` file to a `.env` next to it, and put the microsoft form URL there.
+2. Tested with Node v22. Install dependencies with `pnpm i` (or `npm i`).
+3. Run `pnpm build && pnpm start` (or `npm run build && npm run start`) to build and run the app.
