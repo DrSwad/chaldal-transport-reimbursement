@@ -218,7 +218,7 @@
         else {
           nextWednesday.setDate(date.getDate() + daysUntilWednesday);
         }
-        return today <= nextWednesday;
+        return today <= nextWednesday.setDate(nextWednesday.getDate() + 1); // allow until 12 AM
       };
 
       const formatDate = (date) => {
