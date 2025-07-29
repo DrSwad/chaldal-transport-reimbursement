@@ -4,8 +4,11 @@ import process from 'process';
 import { Invoice } from '@/types/Invoice';
 import { getScreenshotPath, saveSubmission } from '@/storage';
 import fs from 'fs';
+import dotenv from 'dotenv';
 
-const formUrl = 'https://forms.office.com/r/xWfwuqbg02';
+dotenv.config();
+
+const formUrl = process.env.FORM_URL as string;
 const STORAGE_PATH = path.join(process.cwd(), 'storage');
 const AUTH_CONTEXT_PATH = path.join(STORAGE_PATH, '.auth');
 

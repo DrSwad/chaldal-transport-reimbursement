@@ -8,8 +8,16 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    #invoice-screenshot {
+      background: transparent url(https://media.tenor.com/WX_LDjYUrMsAAAAm/loading.webp) center center no-repeat;
+      min-height: 40px;
+      min-width: 40px;
+      background-size: contain;
+    }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body className="bg-gray-50 min-h-screen">
   <div id="root"></div>
 
   <script type="text/babel">
@@ -17,7 +25,7 @@
 
     function App() {
       const [gmailAuth, setGmailAuth] = useState(false);
-      const [microsoftAuth, setMicrosoftAuth] = useState(false);
+      const [microsoftAuth, setMicrosoftAuth] = useState(undefined);
       const [currentDate, setCurrentDate] = useState(new Date());
       const [selectedDate, setSelectedDate] = useState(null);
       const [invoices, setInvoices] = useState([]);
@@ -130,6 +138,46 @@
         }
       };
 
+      const markAsSubmitted = async (emailId) => {
+        setLoading(true);
+        try {
+          const response = await fetch('/api/mark-invoice-submitted', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ emailId })
+          });
+          const result = await response.json();
+          if (result.data) {
+            loadMonthlyInvoices();
+            setSelectedInvoice(null);
+          }
+        } catch (error) {
+          console.error('Error marking invoice as submitted:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const markAsUnsubmitted = async (emailId) => {
+        setLoading(true);
+        try {
+          const response = await fetch('/api/unmark-invoice-submitted', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ emailId })
+          });
+          const result = await response.json();
+          if (result.data) {
+            loadMonthlyInvoices();
+            setSelectedInvoice(null);
+          }
+        } catch (error) {
+          console.error('Error marking invoice as unsubmitted:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
       const getDaysInMonth = () => {
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
@@ -213,13 +261,19 @@
                     </h2>
                     <div className="flex gap-2">
                       <button 
-                        onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+                        onClick={() => {
+                          setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+                          setSelectedDate(null);
+                        }}
                         className="px-3 py-1 rounded text text-slate-400 hover:bg-gray-100"
                       >
                         ← Prev
                       </button>
                       <button 
-                        onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+                        onClick={() => {
+                          setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+                          setSelectedDate(null);
+                        }}
                         className="px-3 py-1 rounded text-slate-400 hover:bg-gray-100"
                       >
                         Next →
@@ -296,34 +350,34 @@
                           <div className="flex items-center gap-2 mb-4">
                             {invoice.rideSharingService === 'Pathao' && pathaoIcon}
                             {invoice.rideSharingService === 'Uber' && uberIcon}
-                            <span class="font-medium text-gray-900 flex-1">{new Date(invoice.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {new Date(invoice.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            <span className="font-medium text-gray-900 flex-1">{new Date(invoice.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {new Date(invoice.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                               invoice.submitted 
                                 ? 'bg-green-100 text-green-800' 
-                                : 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-200 text-gray-600'
                             }`}>
-                              {invoice.submitted ? 'Submitted' : 'Pending'}
+                              {invoice.submitted ? 'Submitted' : 'Not submitted'}
                             </span>
                           </div>
 
-                          <div class="flex items-start justify-between">
-                              <div class="flex-1 mr-4 overflow-hidden">
-                                  <div class="flex items-center">
-                                      <div class="w-3 h-3 rounded-full border border-gray-400 mr-3 flex-shrink-0"></div>
-                                      <span class="text-sm text-gray-700 truncate flex-1 min-w-0">{invoice.startAddress}{invoice.startAddress}</span>
+                          <div className="flex items-start justify-between">
+                              <div className="flex-1 mr-4 overflow-hidden">
+                                  <div className="flex items-center">
+                                      <div className="w-3 h-3 rounded-full border border-gray-400 mr-3 flex-shrink-0"></div>
+                                      <span className="text-sm text-gray-700 truncate flex-1 min-w-0">{invoice.startAddress}</span>
                                   </div>
-                                  <div class="flex items-center">
-                                      <div class="w-3 flex justify-center mr-3">
-                                          <div class="w-0.5 h-3 border-l-2 border-dotted border-gray-300"></div>
+                                  <div className="flex items-center">
+                                      <div className="w-3 flex justify-center mr-3">
+                                          <div className="w-0.5 h-3 border-l-2 border-dotted border-gray-300"></div>
                                       </div>
                                   </div>
-                                  <div class="flex items-center">
-                                      <div class="w-3 h-3 rounded-full border border-gray-400 mr-3 flex-shrink-0"></div>
-                                      <div class="text-sm text-gray-700 truncate">{invoice.endAddress}</div>
+                                  <div className="flex items-center">
+                                      <div className="w-3 h-3 rounded-full border border-gray-400 mr-3 flex-shrink-0"></div>
+                                      <div className="text-sm text-gray-700 truncate">{invoice.endAddress}</div>
                                   </div>
                               </div>
-                              <div class="text-right flex-shrink-0">
-                                  <div class="text-2xl font-bold text-gray-900">৳{invoice.fare}</div>
+                              <div className="text-right flex-shrink-0">
+                                  <div className="text-2xl font-bold text-gray-900">৳{invoice.fare}</div>
                               </div>
                           </div>
                         </div>
@@ -348,23 +402,51 @@
                     </div>
                     <div className="flex-1 overflow-auto">
                       <img 
+                        id="invoice-screenshot"
                         src={`/api/invoice-screenshot?emailId=${selectedInvoice.emailId}`}
-                        alt="Invoice Screenshot"
+                        alt=""
                         className="w-full border rounded"
                         onError={(e) => e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NzM4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+PC9zdmc+'}
                       />
                     </div>
-                    {!selectedInvoice.submitted && microsoftAuth && (
-                      <div className="mt-4">
+                    <div className="mt-4 flex gap-2 justify-end">
+                      {!selectedInvoice.submitted && microsoftAuth && (
+                        <>
+                          <button
+                            onClick={() => markAsSubmitted(selectedInvoice.emailId)}
+                            disabled={loading}
+                            className="w-full px-4 py-2 border border-green-500 text-green-500 rounded hover:bg-green-100 disabled:border-green-200 disabled:text-green-200 disabled:cursor-not-allowed"
+                          >
+                            {loading ? 'Marking...' : 'Mark as Submitted'}
+                          </button>
+                          <button
+                            onClick={() => submitInvoice(selectedInvoice.emailId)}
+                            disabled={loading}
+                            className="w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-green-300 disabled:cursor-not-allowed"
+                          >
+                            {loading ? 'Submitting...' : 'Submit Invoice'}
+                          </button>
+                        </>
+                      )}
+                      {!selectedInvoice.submitted && !microsoftAuth && (
                         <button
-                          onClick={() => submitInvoice(selectedInvoice.emailId)}
-                          disabled={loading}
-                          className="w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-green-300"
+                          onClick={() => authenticateMicrosoft()}
+                          disabled={microsoftAuth === undefined || loading}
+                          className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed"
                         >
-                          {loading ? 'Submitting...' : 'Submit Invoice'}
+                          {microsoftAuth === undefined ? 'Checking Microsoft Authentication State...' : loading ? 'Authenticating...' : 'Authenticate with Microsoft'}
                         </button>
-                      </div>
-                    )}
+                      )}
+                      {selectedInvoice.submitted && (
+                        <button
+                          onClick={() => markAsUnsubmitted(selectedInvoice.emailId)}
+                          disabled={loading}
+                          className="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-red-300 disabled:cursor-not-allowed"
+                        >
+                          {loading ? 'Marking...' : 'Mark as Unsubmitted'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
